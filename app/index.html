@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitch Hangman</title>
+<meta name="description" content="Bitch Hangman — one app to play seven-life Hangman or encrypt a secret word for someone else. Everything happens in your browser.">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#17171a">
+<meta name="referrer" content="no-referrer">
+<link rel="stylesheet" href="styles.css">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+<link rel="apple-touch-icon" href="assets/icon.svg">
+</head>
+<body>
+<noscript>
+  <p class="banner banner--error">This app needs JavaScript. Nothing works without it.</p>
+</noscript>
+
+<div id="env-warning" class="banner banner--error hidden" role="alert">
+  <strong>Web Crypto is unavailable here.</strong>
+  <span id="env-warning-text"></span>
+</div>
+
+<header class="topbar">
+  <div class="topbar__brand">
+    <span class="topbar__logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="26" height="26" role="presentation">
+        <path d="M4 3v18M4 4h12v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="16" cy="14" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M16 17.2v4M14.6 21.2h2.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <div>
+      <h1>Bitch Hangman</h1>
+      <p class="topbar__tagline">Seven lives. One app. Zero setup.</p>
+    </div>
+  </div>
+  <div class="topbar__status">
+    <span class="chip chip--muted" id="key-chip">Loading key…</span>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ============================ VIEW: HOME ============================ -->
+  <section class="view" id="view-home">
+    <div class="card hero">
+      <h2 class="hero__title">Seven lives. One word.</h2>
+      <p class="hero__sub">Pick a job. Everything happens in this browser — no accounts, no backend, nothing sent anywhere.</p>
+    </div>
+
+    <div class="home-grid">
+      <button type="button" class="pick" id="btn-go-play">
+        <span class="pick__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="34" height="34" role="presentation">
+            <path d="M4 3v18M4 4h12v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="16" cy="14" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="M16 17.2v4M14.6 21.2h2.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="pick__title">Play a game</span>
+        <span class="pick__sub">Type a word yourself, or paste an encrypted word someone sent you. Seven lives, one beer.</span>
+      </button>
+
+      <button type="button" class="pick" id="btn-go-encrypt">
+        <span class="pick__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="34" height="34" role="presentation">
+            <path d="M12 3v10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <rect x="7.5" y="13" width="9" height="8" rx="3" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 6.5V3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="pick__title">Generate a word</span>
+        <span class="pick__sub">Encrypt a secret word for the host, then send them the payload. Nobody sees the word — not even the host.</span>
+      </button>
+    </div>
+
+    <div class="actions actions--end">
+      <button type="button" class="btn btn--ghost btn--small" id="btn-open-keys">Key settings</button>
+    </div>
+  </section>
+
+  <!-- ============================ VIEW: PLAY ============================ -->
+  <section class="view hidden" id="view-play">
+    <div class="setup-grid">
+      <div class="panel">
+        <h3>Type a word</h3>
+        <p class="muted">Play on your own right now. No keys, no payload, no internet.</p>
+        <label class="field">
+          <span>Secret word or phrase</span>
+          <input type="text" id="manual-word" autocomplete="off" spellcheck="false" placeholder="e.g. BETTY BOUGHT BUTTER">
+        </label>
+        <label class="field">
+          <span>Hint (optional)</span>
+          <input type="text" id="manual-hint" autocomplete="off" spellcheck="false" placeholder="e.g. tongue twister">
+        </label>
+        <button type="button" class="btn btn--primary" id="btn-manual-start">Start game</button>
+        <p class="status" id="manual-status" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="panel">
+        <h3>Paste an encrypted word</h3>
+        <p class="muted">Someone else’s encrypted payload, unlocked with this app’s key.</p>
+        <label class="field">
+          <span>Encrypted payload</span>
+          <textarea id="payload-input" rows="4" spellcheck="false" placeholder="BHANGMAN1.eyJ2IjoxLCJhbGciOi…"></textarea>
+        </label>
+        <button type="button" class="btn" id="btn-import">Unlock &amp; start</button>
+        <button type="button" class="btn btn--ghost btn--small" id="btn-clear-payload">Clear</button>
+        <p class="hint" id="decrypt-key-note">Uses the app’s key — nothing to set up.</p>
+        <p class="status" id="payload-meta" aria-live="polite"></p>
+        <p class="status" id="import-status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <div class="actions actions--end">
+      <button type="button" class="btn btn--ghost btn--small" id="btn-home-from-play">Back</button>
+    </div>
+  </section>
+
+  <!-- ============================ VIEW: GAME ============================ -->
+  <section class="view hidden" id="view-game">
+    <section class="game-grid" aria-label="Game board">
+
+      <article class="card stage-card">
+        <div class="card__head">
+          <h2>The gallows</h2>
+          <p class="card__sub" id="stage-caption">Gallows only — seven mistakes and he gets a beer.</p>
+        </div>
+
+        <div class="svg-wrap">
+          <svg id="hangman-svg" viewBox="0 0 320 330" role="img"
+               aria-labelledby="hangman-title hangman-desc" data-stage="0">
+            <title id="hangman-title">Bitch Hangman illustration</title>
+            <desc id="hangman-desc">A cheeky cartoon character on a gallows. One body part appears for each wrong guess; the seventh wrong guess produces a beer mug.</desc>
+
+            <g class="gallows" aria-hidden="true">
+              <rect class="gallows__base" x="6" y="292" width="146" height="16" rx="8"/>
+              <rect class="gallows__post" x="30" y="22" width="16" height="274" rx="8"/>
+              <rect class="gallows__beam" x="30" y="22" width="206" height="16" rx="8"/>
+              <path class="gallows__rope" d="M214 38 V 66"/>
+              <path class="gallows__knot" d="M205 66 h18 v8 h-18 z"/>
+            </g>
+
+            <g class="figure">
+              <g class="part" data-part="head">
+                <circle class="ink" cx="214" cy="88" r="25"/>
+                <g class="face">
+                  <path d="M203 80 l8 8 M211 80 l-8 8" class="ink ink--face"/>
+                  <path d="M217 80 l8 8 M225 80 l-8 8" class="ink ink--face"/>
+                  <path d="M204 99 q10 8 20 0" class="ink ink--face"/>
+                  <path d="M211 103 q3 -6 6 0" class="ink ink--face ink--tongue"/>
+                </g>
+              </g>
+
+              <g class="part" data-part="body">
+                <path d="M214 113 V 190" class="ink"/>
+              </g>
+
+              <g class="part part--arm" data-part="left-arm">
+                <path d="M214 128 L 180 162" class="ink"/>
+              </g>
+
+              <g class="part part--arm" data-part="right-arm">
+                <path d="M214 128 L 248 160" class="ink"/>
+              </g>
+
+              <g class="part part--leg" data-part="left-leg">
+                <path d="M214 190 L 190 240" class="ink"/>
+                <path d="M190 240 L 168 244" class="ink ink--foot"/>
+              </g>
+
+              <g class="part part--leg" data-part="right-leg">
+                <path d="M214 190 L 238 240" class="ink"/>
+                <path d="M238 240 L 258 244" class="ink ink--foot"/>
+              </g>
+
+              <g class="part part--beer" data-part="beer">
+                <path d="M262 190 h34 v44 a6 6 0 0 1 -6 6 h-22 a6 6 0 0 1 -6 -6 z" class="beer-glass"/>
+                <path d="M258 190 q22 -16 44 0 z" class="beer-foam"/>
+                <path d="M296 202 q16 12 0 24" class="beer-handle"/>
+                <circle cx="274" cy="214" r="3" class="beer-bubble"/>
+                <circle cx="284" cy="224" r="2.4" class="beer-bubble"/>
+                <circle cx="272" cy="228" r="1.8" class="beer-bubble"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+
+        <div class="lives" id="lives-display" role="status" aria-live="polite">
+          <span class="label">Lives</span>
+          <span class="lives__icons" id="lives-icons" aria-hidden="true"></span>
+          <span class="lives__text" id="lives-text">7 / 7</span>
+        </div>
+      </article>
+
+      <article class="card play-card">
+        <div class="card__head">
+          <h2>Guess a letter</h2>
+          <p class="card__sub">Correct guesses reveal every occurrence. Wrong guesses cost exactly one life.</p>
+        </div>
+
+        <div class="word-display" id="word-display" aria-live="polite" aria-label="Secret word">
+          <p class="word-display__placeholder" id="word-placeholder">Type a word or paste an encrypted payload to begin.</p>
+        </div>
+
+        <div class="message" id="message" role="status" aria-live="polite"></div>
+
+        <div class="letter-grid" id="letter-grid" role="group" aria-label="Letter guesses"></div>
+
+        <div class="actions">
+          <button type="button" class="btn btn--small" id="btn-hint" disabled>Reveal hint</button>
+          <button type="button" class="btn btn--small" id="btn-restart" disabled>Restart round</button>
+          <button type="button" class="btn btn--small btn--ghost" id="btn-new-word">New game…</button>
+        </div>
+
+        <div class="hint-box hidden" id="hint-box">
+          <span class="label">Hint</span>
+          <p id="hint-text"></p>
+        </div>
+
+        <div class="answer-box hidden" id="answer-box">
+          <span class="label">Answer</span>
+          <p id="answer-text"></p>
+        </div>
+      </article>
+    </section>
+  </section>
+
+  <!-- ============================ VIEW: ENCRYPT ============================ -->
+  <section class="view hidden" id="view-encrypt">
+    <div class="encrypt-grid">
+      <article class="card">
+        <div class="card__head">
+          <h2>1. Type your secret</h2>
+          <p class="card__sub">Encryption happens in this browser. The word never leaves your device in readable form.</p>
+        </div>
+
+        <label class="field">
+          <span>Secret word or phrase <span class="counter" id="word-counter">0 / 500</span></span>
+          <textarea id="word" rows="2" spellcheck="false" autocomplete="off"
+                    placeholder="e.g. BETTY BOUGHT BUTTER"></textarea>
+        </label>
+
+        <label class="field">
+          <span>Hint (optional) <span class="counter" id="hint-counter">0 / 300</span></span>
+          <input type="text" id="hint" autocomplete="off" spellcheck="false"
+                 placeholder="e.g. tongue twister">
+        </label>
+
+        <p class="hint" id="form-status" role="status" aria-live="polite"></p>
+
+        <div class="actions">
+          <button type="button" class="btn btn--primary" id="btn-encrypt">Encrypt</button>
+          <button type="button" class="btn btn--ghost" id="btn-clear">Clear</button>
+        </div>
+
+        <p class="fineprint">
+          Your word is normalised slightly before encryption (Unicode NFC, tabs and line breaks become single spaces,
+          outer whitespace trimmed). Spaces and punctuation are kept exactly and are shown to guessers.
+        </p>
+      </article>
+
+      <article class="card">
+        <div class="card__head">
+          <h2>2. Send it</h2>
+          <p class="card__sub">Copy the payload and send it to the host. It targets this app’s key.</p>
+        </div>
+
+        <label class="field">
+          <span>Encrypted payload</span>
+          <textarea id="payload" rows="7" readonly spellcheck="false"
+                    placeholder="Your encrypted payload appears here."></textarea>
+        </label>
+
+        <div class="actions">
+          <button type="button" class="btn btn--primary" id="btn-copy" disabled>Copy encrypted payload</button>
+          <button type="button" class="btn btn--ghost" id="btn-reset" disabled>Start over</button>
+        </div>
+
+        <p class="status" id="encrypt-status" role="status" aria-live="polite"></p>
+
+        <div class="success hidden" id="success-box">
+          <span class="label">Encryption complete</span>
+          <p>Send the payload above to the host. They will paste it into <em>Play a game</em> — you never send the
+            plaintext word and no password is involved.</p>
+          <p class="hint">Only the holder of the matching private key can read it.</p>
+        </div>
+      </article>
+    </div>
+
+    <div class="actions actions--end">
+      <button type="button" class="btn btn--ghost btn--small" id="btn-home-from-encrypt">Back</button>
+    </div>
+  </section>
+
+  <!-- ============================ VIEW: KEY SETTINGS ============================ -->
+  <section class="view hidden" id="view-keys">
+    <section class="card" id="setup-panel" aria-labelledby="setup-title">
+      <div class="card__head">
+        <h2 id="setup-title">Key pair</h2>
+        <p class="card__sub">One key pair runs the whole app: <em>Generate a word</em> encrypts to its public half and
+          <em>Play a game</em> decrypts with its private half. A built-in pair ships with the app, so there is nothing
+          to set up — change it here if you want your own.</p>
+      </div>
+
+      <div id="key-state" class="state state--locked" role="status">
+        <span class="state__dot" aria-hidden="true"></span>
+        <span id="key-state-text">Loading key…</span>
+      </div>
+
+      <div class="results" id="key-results">
+        <div class="fp-block">
+          <div>
+            <span class="label">Key fingerprint</span>
+            <code class="fp" id="key-fingerprint">—</code>
+            <p class="hint">Both sides must use the same key pair. This fingerprint is how you check it.</p>
+          </div>
+          <div class="key-actions">
+            <button type="button" class="btn btn--small" id="btn-copy-public">Copy public key</button>
+            <button type="button" class="btn btn--small" id="btn-download-public">Download public key</button>
+            <button type="button" class="btn btn--small btn--ghost" id="btn-use-default">Use built-in key</button>
+          </div>
+        </div>
+        <label class="field">
+          <span>Public key (PEM)</span>
+          <textarea id="public-pem" rows="5" readonly spellcheck="false"></textarea>
+        </label>
+      </div>
+
+      <div class="setup-grid">
+        <div class="panel">
+          <h3>Change key pair</h3>
+          <p class="muted">Generate a fresh RSA-OAEP 3072-bit pair and use it instead of the built-in one. It is
+            remembered in this browser, and a passphrase-protected backup downloads for safekeeping.</p>
+          <label class="field">
+            <span>Backup passphrase</span>
+            <input type="password" id="gen-pass" autocomplete="new-password" spellcheck="false" placeholder="at least 8 characters">
+          </label>
+          <label class="field">
+            <span>Confirm passphrase</span>
+            <input type="password" id="gen-pass-confirm" autocomplete="new-password" spellcheck="false" placeholder="repeat it">
+          </label>
+          <p class="hint" id="gen-pass-hint" aria-live="polite">Aim for 12+ characters. This passphrase only unlocks your key backup.</p>
+          <button type="button" class="btn btn--primary" id="btn-generate">Generate a new key pair</button>
+          <p class="hint hint--warn">A backup file will download. Move it somewhere safe and out of this Git folder.</p>
+        </div>
+
+        <div class="panel">
+          <h3>Restore from a backup</h3>
+          <p class="muted">Bring a key pair back on a fresh install or another PC. Takes a few seconds (600,000 PBKDF2
+            rounds).</p>
+          <label class="field">
+            <span>Backup file (.json)</span>
+            <input type="file" id="restore-file" accept=".json,application/json,text/plain">
+          </label>
+          <label class="field">
+            <span>…or paste the backup text</span>
+            <textarea id="restore-text" rows="3" spellcheck="false" placeholder='{"type":"BHANGMAN-PRIVATE-KEY-BACKUP", ...}'></textarea>
+          </label>
+          <label class="field">
+            <span>Backup passphrase</span>
+            <input type="password" id="restore-pass" autocomplete="current-password" spellcheck="false">
+          </label>
+          <button type="button" class="btn" id="btn-restore">Restore &amp; use</button>
+        </div>
+      </div>
+
+      <p class="status" id="setup-status" role="status" aria-live="polite"></p>
+
+      <div class="actions actions--end">
+        <button type="button" class="btn btn--small" id="btn-home-from-keys">Back</button>
+      </div>
+    </section>
+  </section>
+
+  <!-- ============================ HELP ============================ -->
+  <details class="card help">
+    <summary>How this works (and what it does not protect)</summary>
+    <div class="help__body">
+      <ol>
+        <li><strong>Play a game</strong> — type a word yourself, or paste an encrypted word someone sent you. Seven
+          wrong guesses and the character gets a beer.</li>
+        <li><strong>Generate a word</strong> — type the secret, press <em>Encrypt</em>, and copy the payload. Send only
+          the payload; the plaintext never leaves your browser.</li>
+        <li>The app ships with one built-in key pair, so both jobs work with no setup. Swap it in <strong>Key
+          settings</strong> if you want your own.</li>
+      </ol>
+      <ul>
+        <li>Nothing is loaded from a server during play: no CDN, no web fonts, no remote images, no analytics, no backend.</li>
+        <li><strong>Heads-up about the built-in key:</strong> its private half is published with this page, so anyone
+          who can open the app can decrypt payloads made with it. It is a convenience default, not a secret. Generate
+          your own pair in <strong>Key settings</strong> for anything that matters.</li>
+        <li>Your own key (once you generate or restore one) is remembered in this browser’s localStorage, scoped to this
+          origin. It never leaves this PC through the app.</li>
+        <li>Normalisation: NFC is applied, accents fold to their base letter (<code>É</code> is revealed by guessing
+          <code>E</code>), and non-Latin letters with no A-Z equivalent are shown automatically so they never trap the game.</li>
+      </ul>
+      <p class="hint">Running from <code>file://</code>? Browsers disable Web Crypto there. Use
+        <code>start-game.bat</code>, which serves the app on <code>http://127.0.0.1</code>.</p>
+    </div>
+  </details>
+</main>
+
+<footer class="footer">
+  <p>Bitch Hangman · one app · <span id="sw-status">service worker not registered</span></p>
+</footer>
+
+<script src="crypto.js"></script>
+<script src="default-keys.js"></script>
+<script src="game-logic.js"></script>
+<script src="key-management.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

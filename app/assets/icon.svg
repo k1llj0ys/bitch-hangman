@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Bitch Hangman">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#23232c"/>
+      <stop offset="1" stop-color="#101013"/>
+    </linearGradient>
+    <linearGradient id="beer" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2c14e"/>
+      <stop offset="1" stop-color="#e0a33a"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- gallows -->
+  <g stroke="#7d6749" stroke-linecap="round">
+    <path d="M96 112 h200" stroke-width="26"/>
+    <path d="M122 100 v320" stroke-width="26"/>
+    <path d="M66 424 h140" stroke-width="26"/>
+  </g>
+  <path d="M290 130 v48" stroke="#b9a98c" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- head -->
+  <circle cx="290" cy="222" r="46" fill="#2f2f38" stroke="#f4ead5" stroke-width="12"/>
+  <g stroke="#c1544e" stroke-width="8" stroke-linecap="round">
+    <path d="M270 208 l18 18 M288 208 l-18 18"/>
+    <path d="M320 208 l18 18 M338 208 l-18 18"/>
+    <path d="M268 258 q22 16 44 0"/>
+  </g>
+
+  <!-- body -->
+  <path d="M290 268 v104" stroke="#f4ead5" stroke-width="13" stroke-linecap="round"/>
+  <path d="M290 300 l-52 52" stroke="#f4ead5" stroke-width="13" stroke-linecap="round"/>
+  <path d="M290 300 l52 52" stroke="#f4ead5" stroke-width="13" stroke-linecap="round"/>
+
+  <!-- beer -->
+  <g>
+    <path d="M312 322 h68 v74 a12 12 0 0 1 -12 12 h-44 a12 12 0 0 1 -12 -12 z" fill="url(#beer)" stroke="#f2c14e" stroke-width="8"/>
+    <path d="M304 324 q42 -30 84 0 z" fill="#f4ead5"/>
+    <path d="M382 348 q30 22 0 44" fill="none" stroke="#f2c14e" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="336" cy="356" r="7" fill="#fff2cf"/>
+    <circle cx="356" cy="376" r="5" fill="#fff2cf"/>
+  </g>
+</svg>

@@ -1,0 +1,25 @@
+{
+  "name": "Bitch Hangman",
+  "short_name": "BH Hangman",
+  "description": "Seven-life Hangman and a public-key encryptor in one app. Play a word or a received payload, or encrypt a secret word to send to the host. Everything happens in your browser.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#17171a",
+  "theme_color": "#17171a",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
